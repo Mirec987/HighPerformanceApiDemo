@@ -1,0 +1,8 @@
+﻿namespace OrderManagement.Contracts.Requests
+{
+    public class UpdateOrderRequest
+    {
+        public string Status { get; set; } = null!;
+        public string RowVersion { get; set; } = null!;
+    }
+}
