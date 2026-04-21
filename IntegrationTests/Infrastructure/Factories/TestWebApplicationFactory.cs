@@ -8,14 +8,16 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using OrderManagement.Application.Abstractions.Persistence;
 using OrderManagement.Infrastructure.Persistence;
 
-namespace OrderManagement.IntegrationTests.Infrastructure;
+namespace IntegrationTests.Infrastructure.Factories;
 
 public class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
     private SqliteConnection? _connection;
+    protected virtual string EnvironmentName => "Testing";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseEnvironment(EnvironmentName);
         builder.ConfigureServices(services =>
         {
             // odstránenie pôvodnej SQL Server registrácie
@@ -33,13 +35,6 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             });
 
             services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
-
-            var sp = services.BuildServiceProvider();
-
-            using var scope = sp.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-            db.Database.EnsureCreated();
         });
     }
 
@@ -51,5 +46,15 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         {
             _connection?.Dispose();
         }
+    }
+
+    public async Task ResetDatabaseAsync()
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        await db.Database.EnsureDeletedAsync();
+        await db.Database.EnsureCreatedAsync();
+        var count = await db.Customers.CountAsync();
     }
 }

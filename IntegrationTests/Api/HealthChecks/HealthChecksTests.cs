@@ -1,10 +1,10 @@
 ﻿using FluentAssertions;
-using OrderManagement.IntegrationTests.Infrastructure;
+using IntegrationTests.Infrastructure.Factories;
 using System.Net;
 
-namespace OrderManagement.IntegrationTests.Api;
+namespace IntegrationTests.Api.HealthChecks;
 
-public class HealthChecksTests : IntegrationTestBase
+public class HealthChecksTests : IntegrationTestBase<TestWebApplicationFactory>
 {
     public HealthChecksTests(TestWebApplicationFactory factory) : base(factory)
     {
@@ -14,7 +14,6 @@ public class HealthChecksTests : IntegrationTestBase
     public async Task Live_HealthCheck_Should_Return_Ok()
     {
         var response = await Client.GetAsync("/health/live");
-
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }

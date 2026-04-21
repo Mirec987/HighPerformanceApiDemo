@@ -22,7 +22,9 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks();
-builder.Services.AddRateLimiter(options =>
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
@@ -49,6 +51,7 @@ builder.Services.AddRateLimiter(options =>
         limiterOptions.QueueLimit = 0;
     });
 });
+}
 
 var app = builder.Build();
 app.UseGlobalExceptionHandling();
@@ -62,18 +65,19 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseRateLimiter();
+}
+
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
-app.UseRateLimiter();
 
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/live");
 
 app.Run();
 
 public partial class Program
 {
-    //public static void Main(string[] args)
-    //{
-    //}
 }
