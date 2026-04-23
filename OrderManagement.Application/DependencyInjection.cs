@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
-using OrderManagement.Application.Orders;
+using OrderManagement.Application.Services;
+using OrderManagement.Application.Services.Interfaces;
 
 namespace OrderManagement.Application;
 

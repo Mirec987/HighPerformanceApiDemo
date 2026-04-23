@@ -1,5 +1,5 @@
 ﻿using FluentValidation;
-using OrderManagement.Contracts.Requests;
+using OrderManagement.Application.Orders.DTOs;
 
 namespace OrderManagement.Application.Orders.Validators;
 

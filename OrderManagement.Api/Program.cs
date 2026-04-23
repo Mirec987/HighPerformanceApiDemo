@@ -1,9 +1,9 @@
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using OrderManagement.Api.Extensions;
 using OrderManagement.Application;
 using OrderManagement.Infrastructure;
 using Serilog;
-using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -20,7 +20,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseEnvironment(EnvironmentName);
         builder.ConfigureServices(services =>
         {
-            // odstránenie pôvodnej SQL Server registrácie
+            // Removed original SQL-based registration
             services.RemoveAll(typeof(DbContextOptions<AppDbContext>));
             services.RemoveAll(typeof(IDbContextOptionsConfiguration<AppDbContext>));
             services.RemoveAll(typeof(AppDbContext));

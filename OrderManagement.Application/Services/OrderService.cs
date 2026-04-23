@@ -1,12 +1,12 @@
 ﻿using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using OrderManagement.Application.Abstractions.Persistence;
-using OrderManagement.Contracts.Requests;
-using OrderManagement.Contracts.Responses;
+using OrderManagement.Application.Orders.DTOs;
+using OrderManagement.Application.Services.Interfaces;
 using OrderManagement.Domain.Entities;
 using OrderManagement.Domain.Enums;
 
-namespace OrderManagement.Application.Orders;
+namespace OrderManagement.Application.Services;
 
 public class OrderService : IOrderService
 {
@@ -32,24 +32,14 @@ public class OrderService : IOrderService
             throw new ValidationException(validationResult.Errors);
         }
 
-        //if (request.CustomerId == Guid.Empty)
-        //    throw new ArgumentException("CustomerId is required.");
-
-        //if (request.Items is null || request.Items.Count == 0)
-        //    throw new ArgumentException("Order must contain at least one item.");
-
-        //if (request.Items.Any(x => x.ProductId == Guid.Empty))
-        //    throw new ArgumentException("Each item must contain ProductId.");
-
-        //if (request.Items.Any(x => x.Quantity <= 0))
-        //    throw new ArgumentException("Quantity must be greater than 0.");
-
         var customerExists = await _dbContext.Customers
             .AsNoTracking()
             .AnyAsync(x => x.Id == request.CustomerId, ct);
 
         if (!customerExists)
+        {
             throw new ArgumentException("Customer does not exist.");
+        }
 
         var productIds = request.Items
             .Select(x => x.ProductId)
@@ -62,7 +52,9 @@ public class OrderService : IOrderService
             .ToDictionaryAsync(x => x.Id, ct);
 
         if (products.Count != productIds.Count)
+        {
             throw new ArgumentException("One or more products do not exist or are inactive.");
+        }
 
         var order = new Order
         {
@@ -103,13 +95,19 @@ public class OrderService : IOrderService
     public async Task<PagedResponse<OrderResponse>> GetAllAsync(GetOrdersRequest request, CancellationToken ct)
     {
         if (request.Page <= 0)
+        {
             request.Page = 1;
+        }
 
         if (request.PageSize <= 0)
+        {
             request.PageSize = 20;
+        }
 
         if (request.PageSize > 100)
+        {
             request.PageSize = 100;
+        }
 
         var query = _dbContext.Orders
             .AsNoTracking()
@@ -138,17 +136,28 @@ public class OrderService : IOrderService
 
         var totalCount = await query.CountAsync(ct);
 
-        var items = await query
+        // Select only required fields from the database without transformations
+        // that EF Core might not be able to translate into SQL correctly.
+        var data = await query
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(x => new OrderResponse
+            .Select(x => new
             {
-                Id = x.Id,
-                OrderNumber = x.OrderNumber,
-                TotalAmount = x.TotalAmount,
-                Status = x.Status.ToString()
+                x.Id,
+                x.OrderNumber,
+                x.TotalAmount,
+                x.Status
             })
             .ToListAsync(ct);
+
+        // Materialize data and construct the final DTO in memory.
+        var items = data.Select(x => new OrderResponse
+        {
+            Id = x.Id,
+            OrderNumber = x.OrderNumber,
+            TotalAmount = x.TotalAmount,
+            Status = x.Status.ToString()
+        }).ToList();
 
         return new PagedResponse<OrderResponse>
         {
@@ -161,33 +170,64 @@ public class OrderService : IOrderService
 
     public async Task<OrderDetailResponse?> GetByIdAsync(Guid id, CancellationToken ct)
     {
-        return await _dbContext.Orders
+        // Select only required fields from the database without transformations
+        // that EF Core might not be able to translate into SQL correctly.
+        var data = await _dbContext.Orders
             .AsNoTracking()
             .Where(x => x.Id == id)
-            .Select(x => new OrderDetailResponse
+            .Select(x => new
             {
-                Id = x.Id,
-                OrderNumber = x.OrderNumber,
-                Status = x.Status.ToString(),
-                TotalAmount = x.TotalAmount,
-                CreatedAtUtc = x.CreatedAtUtc,
-                RowVersion = Convert.ToBase64String(x.RowVersion),
-                Customer = new CustomerResponse
+                x.Id,
+                x.OrderNumber,
+                x.Status,
+                x.TotalAmount,
+                x.CreatedAtUtc,
+                x.RowVersion,
+                Customer = new
                 {
-                    Id = x.Customer.Id,
-                    FullName = x.Customer.FirstName + " " + x.Customer.LastName,
-                    Email = x.Customer.Email
+                    x.Customer.Id,
+                    x.Customer.FirstName,
+                    x.Customer.LastName,
+                    x.Customer.Email
                 },
-                Items = x.Items.Select(i => new OrderItemDetailResponse
+                Items = x.Items.Select(i => new
                 {
-                    ProductId = i.ProductId,
+                    i.ProductId,
                     ProductName = i.Product.Name,
-                    Quantity = i.Quantity,
-                    UnitPrice = i.UnitPrice,
-                    LineTotal = i.Quantity * i.UnitPrice
+                    i.Quantity,
+                    i.UnitPrice
                 }).ToList()
             })
             .FirstOrDefaultAsync(ct);
+
+        if (data is null)
+        {
+            throw new ArgumentException("Order not found.");
+        }
+        // Materialize data and construct the final DTO in memory.
+        return new OrderDetailResponse
+        {
+            Id = data.Id,
+            OrderNumber = data.OrderNumber,
+            Status = data.Status.ToString(),
+            TotalAmount = data.TotalAmount,
+            CreatedAtUtc = data.CreatedAtUtc,
+            RowVersion = Convert.ToBase64String(data.RowVersion),
+            Customer = new CustomerResponse
+            {
+                Id = data.Customer.Id,
+                FullName = $"{data.Customer.FirstName} {data.Customer.LastName}",
+                Email = data.Customer.Email
+            },
+            Items = data.Items.Select(i => new OrderItemDetailResponse
+            {
+                ProductId = i.ProductId,
+                ProductName = i.ProductName,
+                Quantity = i.Quantity,
+                UnitPrice = i.UnitPrice,
+                LineTotal = i.Quantity * i.UnitPrice
+            }).ToList()
+        };
     }
 
     public async Task<OrderResponse> UpdateOrderAsync(Guid id, UpdateOrderRequest request, CancellationToken ct)
@@ -195,16 +235,22 @@ public class OrderService : IOrderService
         var validationResult = await _updateOrderValidator.ValidateAsync(request, ct);
 
         if (!validationResult.IsValid)
-            throw new FluentValidation.ValidationException(validationResult.Errors);
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
 
         var order = await _dbContext.Orders
             .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         if (order is null)
+        {
             throw new ArgumentException("Order does not exist.");
+        }
 
         if (!Enum.TryParse<OrderStatus>(request.Status, true, out var newStatus))
+        {
             throw new ArgumentException("Invalid order status.");
+        }
 
         _dbContext.Entry(order).Property(x => x.RowVersion).OriginalValue =
             Convert.FromBase64String(request.RowVersion);
@@ -212,11 +258,6 @@ public class OrderService : IOrderService
         order.Status = newStatus;
 
         await _dbContext.SaveChangesAsync(ct);
-
-        //_logger.LogInformation(
-        //    "Order {OrderId} status changed to {Status}",
-        //    order.Id,
-        //    order.Status);
 
         return new OrderResponse
         {

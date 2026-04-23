@@ -21,11 +21,11 @@
 
   <ItemGroup>
     <Folder Include="Configuration\" />
+    <Folder Include="logs\" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\OrderManagement.Application\OrderManagement.Application.csproj" />
-    <ProjectReference Include="..\OrderManagement.Contracts\OrderManagement.Contracts.csproj" />
     <ProjectReference Include="..\OrderManagement.Infrastructure\OrderManagement.Infrastructure.csproj" />
   </ItemGroup>
 

@@ -26,10 +26,6 @@ public class OrderConfig : IEntityTypeConfiguration<Order>
         entity.Property(x => x.TotalAmount)
             .HasColumnType("decimal(18,2)");
 
-        // entity.Property(x => x.RowVersion)
-        //     .IsRowVersion();
-        //.IsConcurrencyToken();
-
         entity.Property(x => x.RowVersion)
             .IsConcurrencyToken()
             .IsRequired();

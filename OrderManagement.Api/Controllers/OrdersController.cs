@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using OrderManagement.Application.Orders;
-using OrderManagement.Contracts.Requests;
-using OrderManagement.Contracts.Responses;
+using OrderManagement.Application.Orders.DTOs;
+using OrderManagement.Application.Services.Interfaces;
 
 namespace OrderManagement.Api.Controllers;
 
@@ -32,7 +31,9 @@ public class OrdersController : ControllerBase
         var order = await _orderService.GetByIdAsync(id, ct);
 
         if (order is null)
+        {
             return NotFound();
+        }
 
         return Ok(order);
     }
@@ -41,19 +42,8 @@ public class OrdersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<OrderResponse>> Create(CreateOrderRequest request, CancellationToken ct)
     {
-        //try
-        //{
         var response = await _orderService.CreateAsync(request, ct);
         return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
-        //}
-        //catch (ValidationException ex)
-        //{
-        //    return BadRequest(ex.Message);
-        //}
-        //catch (ArgumentException ex)
-        //{
-        //    return BadRequest(ex.Message);
-        //}
     }
 
     [EnableRateLimiting("write-policy")]

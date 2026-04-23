@@ -1,7 +1,5 @@
 ﻿using FluentAssertions;
 using IntegrationTests.Infrastructure.Factories;
-using OrderManagement.Contracts.Requests;
-using OrderManagement.Contracts.Responses;
 using System.Net;
 using System.Net.Http.Json;
 

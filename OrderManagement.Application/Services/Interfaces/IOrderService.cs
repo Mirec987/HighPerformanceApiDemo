@@ -1,7 +1,6 @@
-﻿using OrderManagement.Contracts.Requests;
-using OrderManagement.Contracts.Responses;
+﻿using OrderManagement.Application.Orders.DTOs;
 
-namespace OrderManagement.Application.Orders;
+namespace OrderManagement.Application.Services.Interfaces;
 
 public interface IOrderService
 {

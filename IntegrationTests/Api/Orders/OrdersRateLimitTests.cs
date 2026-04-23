@@ -1,8 +1,8 @@
-﻿using FluentAssertions;
-using IntegrationTests.Infrastructure.Factories;
-using OrderManagement.Contracts.Requests;
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
+using FluentAssertions;
+using IntegrationTests.Infrastructure.Factories;
+using OrderManagement.Application.Orders.DTOs;
 
 namespace IntegrationTests.Api.Orders;
 

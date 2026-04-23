@@ -34,7 +34,9 @@ public class AppDbContext : DbContext, IAppDbContext
     private void UpdateSqliteRowVersions()
     {
         if (Database.ProviderName != "Microsoft.EntityFrameworkCore.Sqlite")
+        {
             return;
+        }
 
         var entries = ChangeTracker.Entries()
             .Where(e => e.Entity is Order &&
