@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using OrderManagement.Application.Abstractions.Persistence;
 using OrderManagement.Domain.Entities;
@@ -23,6 +24,15 @@ public class AppDbContext : DbContext, IAppDbContext
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
         AppDbContextSeed.Seed(modelBuilder);
+
+        if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
+        {
+            modelBuilder.Entity<Order>()
+                .Property(x => x.RowVersion)
+                .IsConcurrencyToken()
+                .ValueGeneratedNever()
+                .IsRequired();
+        }
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -45,7 +55,7 @@ public class AppDbContext : DbContext, IAppDbContext
         foreach (var entry in entries)
         {
             var order = (Order)entry.Entity;
-            order.RowVersion = Guid.NewGuid().ToByteArray();
+            order.RowVersion = RandomNumberGenerator.GetBytes(8);
         }
     }
 }

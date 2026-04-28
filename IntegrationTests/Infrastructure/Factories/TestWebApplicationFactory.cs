@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using OrderManagement.Api.Configuration;
 using OrderManagement.Application.Abstractions.Persistence;
 using OrderManagement.Infrastructure.Persistence;
 
@@ -13,7 +14,7 @@ namespace IntegrationTests.Infrastructure.Factories;
 public class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
     private SqliteConnection? _connection;
-    protected virtual string EnvironmentName => "Testing";
+    protected virtual string EnvironmentName => ApiConstants.Environments.Testing;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

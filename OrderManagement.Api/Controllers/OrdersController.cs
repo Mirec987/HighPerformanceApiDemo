@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using OrderManagement.Api.Configuration;
 using OrderManagement.Application.Orders.DTOs;
 using OrderManagement.Application.Services.Interfaces;
 
@@ -38,7 +39,7 @@ public class OrdersController : ControllerBase
         return Ok(order);
     }
 
-    [EnableRateLimiting("write-policy")]
+    [EnableRateLimiting(ApiConstants.RateLimitPolicies.WritePolicy)]
     [HttpPost]
     public async Task<ActionResult<OrderResponse>> Create(CreateOrderRequest request, CancellationToken ct)
     {
@@ -46,7 +47,7 @@ public class OrdersController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
     }
 
-    [EnableRateLimiting("write-policy")]
+    [EnableRateLimiting(ApiConstants.RateLimitPolicies.WritePolicy)]
     [HttpPatch("{id:guid}/status")]
     public async Task<ActionResult<OrderResponse>> UpdateStatus(
     Guid id,

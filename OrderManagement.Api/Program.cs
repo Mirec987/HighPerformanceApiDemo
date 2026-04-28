@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using OrderManagement.Api.Configuration;
 using OrderManagement.Api.Extensions;
 using OrderManagement.Application;
 using OrderManagement.Infrastructure;
@@ -22,38 +23,47 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks();
-if (!builder.Environment.IsEnvironment("Testing"))
+
+var writePermitLimit = builder.Environment.IsEnvironment(ApiConstants.Environments.LoadTesting) ? 100_000 : 2;
+
+if (!builder.Environment.IsEnvironment(ApiConstants.Environments.Testing))
 {
     builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
-    options.OnRejected = async (context, token) =>
     {
-        context.HttpContext.Response.ContentType = "application/json";
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-        await context.HttpContext.Response.WriteAsync(
-            """
-            {
-              "title": "Too many requests",
-              "status": 429,
-              "detail": "Rate limit exceeded. Please try again later."
-            }
-            """,
-            token);
-    };
+        options.OnRejected = async (context, token) =>
+        {
+            context.HttpContext.Response.ContentType = "application/json";
 
-    options.AddFixedWindowLimiter("write-policy", limiterOptions =>
-    {
-        limiterOptions.PermitLimit = 2;
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiterOptions.QueueLimit = 0;
+            await context.HttpContext.Response.WriteAsync(
+                """
+                {
+                  "title": "Too many requests",
+                  "status": 429,
+                  "detail": "Rate limit exceeded. Please try again later."
+                }
+                """,
+                token);
+        };
+
+        options.AddFixedWindowLimiter(ApiConstants.RateLimitPolicies.WritePolicy, limiterOptions =>
+        {
+            limiterOptions.PermitLimit = writePermitLimit;
+            limiterOptions.Window = TimeSpan.FromMinutes(1);
+            limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            limiterOptions.QueueLimit = 0;
+        });
     });
-});
 }
 
 var app = builder.Build();
+
+Log.Information(
+    "Application starting in {EnvironmentName}. Write rate limit: {WritePermitLimit} requests/minute.",
+    app.Environment.EnvironmentName,
+    app.Environment.IsEnvironment(ApiConstants.Environments.Testing) ? 0 : writePermitLimit);
+
 app.UseGlobalExceptionHandling();
 app.UseCorrelationId();
 app.UseSerilogRequestLogging();
@@ -65,7 +75,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-if (!app.Environment.IsEnvironment("Testing"))
+if (!app.Environment.IsEnvironment(ApiConstants.Environments.Testing))
 {
     app.UseRateLimiter();
 }

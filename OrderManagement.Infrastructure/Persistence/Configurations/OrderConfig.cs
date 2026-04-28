@@ -27,8 +27,7 @@ public class OrderConfig : IEntityTypeConfiguration<Order>
             .HasColumnType("decimal(18,2)");
 
         entity.Property(x => x.RowVersion)
-            .IsConcurrencyToken()
-            .IsRequired();
+            .IsRowVersion();
 
         entity.HasOne(x => x.Customer)
             .WithMany(x => x.Orders)
