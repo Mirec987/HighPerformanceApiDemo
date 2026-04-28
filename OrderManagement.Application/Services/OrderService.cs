@@ -202,7 +202,7 @@ public class OrderService : IOrderService
 
         if (data is null)
         {
-            throw new ArgumentException("Order not found.");
+            return null;
         }
         // Materialize data and construct the final DTO in memory.
         return new OrderDetailResponse

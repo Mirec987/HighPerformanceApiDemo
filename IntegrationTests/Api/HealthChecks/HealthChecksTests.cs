@@ -1,6 +1,6 @@
-﻿using FluentAssertions;
+﻿using System.Net;
+using FluentAssertions;
 using IntegrationTests.Infrastructure.Factories;
-using System.Net;
 
 namespace IntegrationTests.Api.HealthChecks;
 

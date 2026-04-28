@@ -1,7 +1,8 @@
-﻿using FluentAssertions;
-using IntegrationTests.Infrastructure.Factories;
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
+using FluentAssertions;
+using IntegrationTests.Infrastructure.Factories;
+using OrderManagement.Application.Orders.DTOs;
 
 namespace IntegrationTests.Api.Orders;
 
@@ -48,10 +49,10 @@ public class OrdersTests : IntegrationTestBase<TestWebApplicationFactory>
             Items =
             [
                 new CreateOrderItemRequest
-            {
-                ProductId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
-                Quantity = 1
-            }
+                {
+                    ProductId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+                    Quantity = 1
+                }
             ]
         };
 
@@ -68,6 +69,46 @@ public class OrdersTests : IntegrationTestBase<TestWebApplicationFactory>
     }
 
     [Fact]
+    public async Task Get_Order_By_Missing_Id_Should_Return_NotFound()
+    {
+        var response = await Client.GetAsync($"/api/orders/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Update_Order_Status_With_Invalid_Status_Should_Return_BadRequest()
+    {
+        var request = new UpdateOrderRequest
+        {
+            Status = "Unknown",
+            RowVersion = Convert.ToBase64String(new byte[8])
+        };
+
+        var response = await Client.PatchAsJsonAsync(
+            $"/api/orders/{Guid.NewGuid()}/status",
+            request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Update_Order_Status_With_Invalid_RowVersion_Length_Should_Return_BadRequest()
+    {
+        var request = new UpdateOrderRequest
+        {
+            Status = "Paid",
+            RowVersion = Convert.ToBase64String(new byte[4])
+        };
+
+        var response = await Client.PatchAsJsonAsync(
+            $"/api/orders/{Guid.NewGuid()}/status",
+            request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task Update_Order_Status_With_Stale_RowVersion_Should_Return_Conflict()
     {
         var createRequest = new CreateOrderRequest
@@ -76,10 +117,10 @@ public class OrdersTests : IntegrationTestBase<TestWebApplicationFactory>
             Items =
             [
                 new CreateOrderItemRequest
-            {
-                ProductId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
-                Quantity = 1
-            }
+                {
+                    ProductId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+                    Quantity = 1
+                }
             ]
         };
 

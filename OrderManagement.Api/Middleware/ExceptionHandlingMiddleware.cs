@@ -1,7 +1,7 @@
-﻿using FluentValidation;
+﻿using System.Text.Json;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace OrderManagement.Api.Middleware;
 
