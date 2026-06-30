@@ -58,6 +58,10 @@ dlldata.c
 # Benchmark Results
 BenchmarkDotNet.Artifacts/
 
+# Performance test and profiling results
+load-test-results/
+profiling-results/
+
 # .NET Core
 project.lock.json
 project.fragment.lock.json
