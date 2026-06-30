@@ -9,7 +9,7 @@ public sealed class MemoryCacheService : ICacheService
 {
     private readonly IMemoryCache _cache;
     private readonly CachingOptions _options;
-    private readonly ConcurrentDictionary<string, Lazy<Task<object?>>> _inflight = new();
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _keyLocks = new();
     private readonly ConcurrentDictionary<string, long> _versions = new();
 
     public MemoryCacheService(IMemoryCache cache, IOptions<CachingOptions> options)
@@ -34,15 +34,17 @@ public sealed class MemoryCacheService : ICacheService
             return cached;
         }
 
-        var lazy = _inflight.GetOrAdd(
-            key,
-            _ => new Lazy<Task<object?>>(
-                async () => await factory(cancellationToken),
-                LazyThreadSafetyMode.ExecutionAndPublication));
+        var keyLock = _keyLocks.GetOrAdd(key, static _ => new SemaphoreSlim(1, 1));
+        await keyLock.WaitAsync(cancellationToken);
 
         try
         {
-            var result = (T?)await lazy.Value.WaitAsync(cancellationToken);
+            if (_cache.TryGetValue(key, out cached))
+            {
+                return cached;
+            }
+
+            var result = await factory(cancellationToken);
 
             if (result is not null)
             {
@@ -53,7 +55,7 @@ public sealed class MemoryCacheService : ICacheService
         }
         finally
         {
-            _inflight.TryRemove(new KeyValuePair<string, Lazy<Task<object?>>>(key, lazy));
+            keyLock.Release();
         }
     }
 
@@ -63,13 +65,8 @@ public sealed class MemoryCacheService : ICacheService
     public void IncrementVersion(string key) =>
         _versions.AddOrUpdate(key, 1, static (_, current) => checked(current + 1));
 
-    public void Remove(string key)
-    {
-        if (_options.Enabled)
-        {
-            _cache.Remove(key);
-        }
-    }
+    public void Remove(string key) =>
+        _cache.Remove(key);
 
     private TimeSpan GetExpiration(CachePolicy policy) => policy switch
     {
