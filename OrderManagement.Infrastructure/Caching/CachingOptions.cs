@@ -9,4 +9,6 @@ public sealed class CachingOptions
     public int OrderDetailSeconds { get; set; } = 60;
 
     public int OrderListSeconds { get; set; } = 20;
+
+    public long SizeLimit { get; set; } = 10_000;
 }

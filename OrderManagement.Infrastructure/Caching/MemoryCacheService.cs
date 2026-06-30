@@ -48,7 +48,7 @@ public sealed class MemoryCacheService : ICacheService
 
             if (result is not null)
             {
-                _cache.Set(key, result, GetExpiration(policy));
+                _cache.Set(key, result, CreateEntryOptions(policy));
             }
 
             return result;
@@ -67,6 +67,12 @@ public sealed class MemoryCacheService : ICacheService
 
     public void Remove(string key) =>
         _cache.Remove(key);
+
+    private MemoryCacheEntryOptions CreateEntryOptions(CachePolicy policy) => new()
+    {
+        AbsoluteExpirationRelativeToNow = GetExpiration(policy),
+        Size = 1
+    };
 
     private TimeSpan GetExpiration(CachePolicy policy) => policy switch
     {

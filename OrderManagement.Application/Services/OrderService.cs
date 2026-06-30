@@ -95,13 +95,13 @@ public class OrderService : IOrderService
 
     public async Task<PagedResponse<OrderResponse>> GetAllAsync(GetOrdersRequest request, CancellationToken ct)
     {
-        NormalizePaging(request);
+        var normalizedRequest = NormalizePaging(request);
         var version = _cache.GetVersion(OrderCacheKeys.ListVersion);
-        var key = OrderCacheKeys.List(request, version);
+        var key = OrderCacheKeys.List(normalizedRequest, version);
 
         return await _cache.GetOrCreateAsync(
             key,
-            async token => (PagedResponse<OrderResponse>?)await LoadOrdersAsync(request, token),
+            async token => (PagedResponse<OrderResponse>?)await LoadOrdersAsync(normalizedRequest, token),
             CachePolicy.OrderList,
             ct) ?? throw new InvalidOperationException("Order list cache factory returned null.");
     }
@@ -253,10 +253,13 @@ public class OrderService : IOrderService
         };
     }
 
-    private static void NormalizePaging(GetOrdersRequest request)
+    private static GetOrdersRequest NormalizePaging(GetOrdersRequest request) => new()
     {
-        if (request.Page <= 0) request.Page = 1;
-        if (request.PageSize <= 0) request.PageSize = 20;
-        if (request.PageSize > 100) request.PageSize = 100;
-    }
+        CustomerId = request.CustomerId,
+        Status = request.Status,
+        SortBy = request.SortBy,
+        SortDirection = request.SortDirection,
+        Page = request.Page <= 0 ? 1 : request.Page,
+        PageSize = Math.Clamp(request.PageSize <= 0 ? 20 : request.PageSize, 1, 100)
+    };
 }

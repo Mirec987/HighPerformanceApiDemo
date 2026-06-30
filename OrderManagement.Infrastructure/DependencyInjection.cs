@@ -20,6 +20,11 @@ public static class DependencyInjection
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
 
         var cachingSection = configuration.GetSection(CachingOptions.SectionName);
+        var sizeLimit = long.TryParse(
+            cachingSection[nameof(CachingOptions.SizeLimit)],
+            out var configuredSizeLimit)
+            ? Math.Max(1, configuredSizeLimit)
+            : 10_000;
         services.Configure<CachingOptions>(options =>
         {
             if (bool.TryParse(cachingSection[nameof(CachingOptions.Enabled)], out var enabled))
@@ -28,8 +33,10 @@ public static class DependencyInjection
                 options.OrderDetailSeconds = detailSeconds;
             if (int.TryParse(cachingSection[nameof(CachingOptions.OrderListSeconds)], out var listSeconds))
                 options.OrderListSeconds = listSeconds;
+            options.SizeLimit = sizeLimit;
         });
-        services.AddMemoryCache();
+        services.AddMemoryCache(options =>
+            options.SizeLimit = sizeLimit);
         services.AddSingleton<ICacheService, MemoryCacheService>();
 
         return services;

@@ -23,6 +23,32 @@ public class MemoryCacheServiceTests
     }
 
     [Fact]
+    public async Task GetOrCreate_Should_Work_With_Configured_SizeLimit()
+    {
+        using var memoryCache = new MemoryCache(
+            Options.Create(new MemoryCacheOptions { SizeLimit = 10 }));
+        var service = new MemoryCacheService(
+            memoryCache,
+            Options.Create(new CachingOptions { Enabled = true }));
+        var factoryCalls = 0;
+
+        var first = await service.GetOrCreateAsync<string>(
+            "sized-key",
+            _ => Task.FromResult<string?>(Interlocked.Increment(ref factoryCalls).ToString()),
+            CachePolicy.OrderDetail,
+            CancellationToken.None);
+        var second = await service.GetOrCreateAsync<string>(
+            "sized-key",
+            _ => Task.FromResult<string?>(Interlocked.Increment(ref factoryCalls).ToString()),
+            CachePolicy.OrderDetail,
+            CancellationToken.None);
+
+        first.Should().Be("1");
+        second.Should().Be("1");
+        factoryCalls.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Cancelling_First_Request_Should_Not_Cancel_Waiting_Request()
     {
         using var memoryCache = new MemoryCache(Options.Create(new MemoryCacheOptions()));

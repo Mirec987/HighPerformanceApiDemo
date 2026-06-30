@@ -2,7 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using IntegrationTests.Infrastructure.Factories;
+using Microsoft.Extensions.DependencyInjection;
 using OrderManagement.Application.Orders.DTOs;
+using OrderManagement.Application.Services.Interfaces;
 
 namespace IntegrationTests.Api.Orders;
 
@@ -10,6 +12,26 @@ public class OrderCachingTests : IntegrationTestBase<TestWebApplicationFactory>
 {
     public OrderCachingTests(TestWebApplicationFactory factory) : base(factory)
     {
+    }
+
+    [Fact]
+    public async Task GetAll_Should_Not_Mutate_Paging_Request()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IOrderService>();
+        var request = new GetOrdersRequest
+        {
+            CustomerId = Guid.NewGuid(),
+            Page = 0,
+            PageSize = 500
+        };
+
+        var result = await service.GetAllAsync(request, CancellationToken.None);
+
+        request.Page.Should().Be(0);
+        request.PageSize.Should().Be(500);
+        result.Page.Should().Be(1);
+        result.PageSize.Should().Be(100);
     }
 
     [Fact]
