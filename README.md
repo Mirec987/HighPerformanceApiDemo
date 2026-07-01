@@ -26,14 +26,40 @@ Infrastructure -> Application
 
 ---
 
-## Run
+## Run locally
 
-```bash
-dotnet ef database update
-dotnet run
+### Prerequisites
+
+- .NET 9 SDK
+- SQL Server Express LocalDB (the default connection string uses `(localdb)\MSSQLLocalDB`)
+- Git
+- EF Core CLI: `dotnet tool install --global dotnet-ef`
+
+### Setup
+
+```powershell
+git clone <repository-url>
+cd OrderManagement
+dotnet restore
+dotnet ef database update --project OrderManagement.Infrastructure --startup-project OrderManagement.Api
+dotnet run --project OrderManagement.Api --launch-profile https
 ```
 
-Swagger: `https://localhost:xxxx/swagger`
+Swagger is available at `https://localhost:7282/swagger` (or `http://localhost:5043/swagger`).
+
+If the local HTTPS certificate is not trusted, run:
+
+```powershell
+dotnet dev-certs https --trust
+```
+
+Run the complete test suite:
+
+```powershell
+dotnet test OrderManagement.sln --no-restore
+```
+
+The default database connection is configured in `OrderManagement.Api/appsettings.json`. Override `ConnectionStrings__DefaultConnection` when LocalDB is unavailable.
 
 ---
 
@@ -63,6 +89,8 @@ PATCH  /api/orders/{id}/status
 - WebApplicationFactory
 - SQLite in-memory
 - Cache invalidation integration tests
+- Cache synchronization, size-limit, and request immutability tests
+- Current result: 14/14 tests passing
 - `dotnet test OrderManagement.sln --no-restore`
 
 ---
@@ -75,7 +103,9 @@ Frequently read order data is cached through an application-level `ICacheService
 - filtered order lists expire after 20 seconds
 - updating an order removes its detail cache entry
 - creating or updating an order increments the list cache version
-- concurrent misses for the same key share one database operation
+- per-key semaphores serialize concurrent misses without sharing a request cancellation token
+- cache removal also runs when caching is disabled, preventing stale entries after configuration changes
+- each entry has `Size = 1` and the cache has a configurable global size limit
 - missing orders are not cached
 
 Configuration is stored in `OrderManagement.Api/appsettings.json`:
@@ -84,9 +114,14 @@ Configuration is stored in `OrderManagement.Api/appsettings.json`:
 "Caching": {
   "Enabled": true,
   "OrderDetailSeconds": 60,
-  "OrderListSeconds": 20
+  "OrderListSeconds": 20,
+  "SizeLimit": 10000
 }
 ```
+
+`SizeLimit` is expressed in logical units. Because every current entry uses `Size = 1`, the default allows up to 10,000 entries before memory-cache compaction.
+
+List paging is normalized on a copied `GetOrdersRequest`: invalid page values use page 1, page size defaults to 20, and the maximum page size is 100. The caller's request object is never modified.
 
 Caching can be disabled for comparison without changing code:
 
@@ -144,6 +179,18 @@ Generated reports and profiling captures are ignored by Git. See [PERFORMANCE.md
 
 ---
 
-## Purpose
+## Demo scope and roadmap
 
-Modern .NET backend demo.
+This repository is a performance-focused demo and learning project, not a production-ready deployment template. It demonstrates the current API architecture, database access, caching, validation, rate limiting, health checks, logging, load testing, benchmarking, and profiling.
+
+Production-oriented capabilities are intentionally incomplete and may be added in future iterations:
+
+- OpenTelemetry tracing and metrics with a Prometheus-compatible backend
+- Gzip/Brotli response compression and measurements of its impact
+- JWT/OAuth2 authentication and authorization, HTTPS enforcement, and stricter CORS policies
+- distributed caching such as Redis for horizontally scaled instances
+- reverse proxy and load-balancing configuration such as Nginx or YARP
+- production secret management, deployment configuration, and CI/CD automation
+- additional resilience, security, observability, and capacity testing
+
+Performance results in this repository are local measurements and should not be treated as production guarantees.

@@ -1,19 +1,25 @@
 root = true
 
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+
 [*.cs]
+trim_trailing_whitespace = true
 
 ############################
 # GLOBAL SEVERITY
 ############################
 
-# Style pravidl· ako warning
+# Style pravidl√° ako warning
 dotnet_analyzer_diagnostic.category-Style.severity = warning
 
-# Kvalita kÛdu
+# Kvalita k√≥du
 dotnet_analyzer_diagnostic.category-CodeQuality.severity = warning
 
 ############################
-# BRACES (tvoj hlavn˝ cieæ)
+# BRACES (tvoj hlavn√Ω cie≈æ)
 ############################
 
 csharp_prefer_braces = true
@@ -87,5 +93,3 @@ csharp_style_namespace_declarations = file_scoped
 dotnet_diagnostic.IDE0058.severity = none
 csharp_style_prefer_primary_constructors = true
 dotnet_diagnostic.IDE0290.severity = suggestion
-
-
